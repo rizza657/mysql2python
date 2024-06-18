@@ -124,6 +124,8 @@ import MySQLdb
 
 
 
+
+
 # Database connection details
 db_host = "localhost"
 db_user = "root"
@@ -179,9 +181,82 @@ def createDB():
             password VARCHAR(50)
         )
     """)
+    # this line of code commit changes to the database and close the connection
     mysql.connection.commit()
     dbConn.close()
     return jsonify({"message": "Table created successfully"}), 201
+
+
+#this line of code helo to drop database
+@server.route("/dropdatabase", methods=["POST"])
+def drop_database():
+    db_name = 'doshmydb'  # Replace with the name of the database you want to drop
+    db_conn = mysql.connection.cursor()
+    db_conn.execute(f"DROP DATABASE IF EXISTS {db_name}")
+    mysql.connection.commit()
+    db_conn.close()
+
+    return jsonify({"message": f"Database '{db_name}' dropped successfully"}), 200
+
+
+#this line of code help you trancate a table 
+@server.route("/truncatedatabase", methods=["POST"])
+def truncate_database():
+    db_name = 'doshmydb'
+    db_conn = mysql.connection.cursor()
+    
+    # Fetch all table names in the database
+    db_conn.execute(f"SELECT table_name FROM information_schema.tables WHERE table_schema = '{db_name}'")
+    tables = db_conn.fetchall()
+    
+    # Truncate each table
+    for table in tables:
+        table_name = table[0]
+        db_conn.execute(f"TRUNCATE TABLE {table_name}")
+    
+    mysql.connection.commit()
+    db_conn.close()
+    
+    return jsonify({"message": f"All tables in database '{db_name}' truncated successfully"}), 200
+
+
+# this line of code helps to rollback  transactiom
+@server.route("/rollback", methods=["POST"])
+def rollbackExample():
+    dbConn = mysql.connection.cursor()
+    dbConn.execute("START TRANSACTION")
+
+    # Perform some operations
+    dbConn.execute("INSERT INTO sallah (fname, lname, email, password) VALUES (%s, %s, %s, %s)", 
+                   ('ade', 'monday', 'ademon@gmail.com', 'wicki44'))
+
+    # Intentionally cause an error to trigger a rollback
+    dbConn.execute("INSERT INTO maydb (value) VALUES ('test')")
+
+    # Commit the transaction if everything goes well
+    mysql.connection.commit()
+    dbConn.close()
+
+    return jsonify({"message": "Transaction successful"}), 201
+
+
+# this line of code help you drop table
+@server.route("/droptable", methods=["POST"])
+def dropTable():
+    table_name = request.json.get('sallah')
+
+    if not table_name:
+        return jsonify({"error": "Table name is required"}), 400
+
+    dbConn = mysql.connection.cursor()
+    dbConn.execute(f"DROP TABLE IF EXISTS {table_name}")
+    mysql.connection.commit()
+    dbConn.close()
+
+    return jsonify({"message": f"Table '{table_name}' dropped successfully"}), 200
+
+
+
 
 @server.route("/register", methods=["POST"])
 def regUser():
@@ -192,8 +267,15 @@ def regUser():
     password = data['password']
 
     dbConn = mysql.connection.cursor()
+
+    #this line of code starts a transaction  
+    dbConn.execute("START TRANSACTION")
+
+    #this line of code Execute the insert query
     dbConn.execute("INSERT INTO sallah (fname, lname, email, password) VALUES (%s, %s, %s, %s)", 
                    (fname, lname, email, password))
+    
+    # commits the transaction
     mysql.connection.commit()
     dbConn.close()
 
