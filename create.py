@@ -118,7 +118,7 @@
 
 # add_s()  # Call the function to print the updated list
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 from flask_mysqldb import MySQL
 import MySQLdb
 
@@ -187,12 +187,14 @@ def createDB():
     return jsonify({"message": "Table created successfully"}), 201
 
 
-#this line of code helo to drop database
+
+
+#this line of code help to drop database
 @server.route("/dropdatabase", methods=["POST"])
 def drop_database():
     db_name = 'doshmydb'  # Replace with the name of the database you want to drop
     db_conn = mysql.connection.cursor()
-    db_conn.execute(f"DROP DATABASE IF EXISTS {db_name}")
+    db_conn.execute("DROP DATABASE IF EXISTS %(db_name)s", {"db_name": db_name}) #to prevent sql injectiomn attack
     mysql.connection.commit()
     db_conn.close()
 
@@ -200,7 +202,7 @@ def drop_database():
 
 
 #this line of code help you trancate a table 
-@server.route("/truncatedatabase", methods=["POST"])
+@server.route("/truncatedatabase/{table_name}", methods=["POST"])
 def truncate_database():
     db_name = 'doshmydb'
     db_conn = mysql.connection.cursor()
@@ -257,7 +259,6 @@ def dropTable():
 
 
 
-
 @server.route("/register", methods=["POST"])
 def regUser():
     data = request.json
@@ -287,6 +288,12 @@ def regUser():
         "email": email,
         "password": password
     }), 201
+
+
+@server.route("/homemy", methods=["GET"])
+def Homepage_r():
+    return render_template("home.html")
+
 
 if __name__ == '__main__':
     server.run(debug=True, port=5001)
